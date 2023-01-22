@@ -7,10 +7,46 @@ const ptp = require("pdf-to-printer");
 const { exec } = require('child_process');
 const cors = require("cors");
 
+// ...
+console.log('Platform:', process.platform);
+
 // Create upload directory
-const uploadDirectory = "./Uploads/"
+const uploadDirectory = "./Uploads/";
+console.log('Upload Directory:', uploadDirectory);
+console.log('===================================');
+
 if (!fs.existsSync(uploadDirectory)) {
     fs.mkdirSync(uploadDirectory);
+}
+
+// ...
+const PrintFile = (ParamFilePath, ParamPrinterName) => {
+    // if (process.platform != 'win32') {
+    //     printer.printFile({
+    //         filename: ParamFilePath,
+    //         printer: ParamPrinterName, // printer name, if missing then will print to default printer
+    //         success: function (jobID) {
+    //             console.log("sent to printer with ID: " + jobID);
+    //         },
+    //         error: function (err) {
+    //             console.log(err);
+    //         }
+    //     });
+    // }
+}
+
+// ...
+const StringToFile = (ParamString) => {
+    const path = uploadDirectory + '_' + timeStamp + ".txt";
+    fs.writeFile(path, ParamString, function (err) {
+        if (err) {
+            return console.log("TXT_TO_FILE_EERROR : " + err);
+        }
+        console.log("The file was saved.");
+        return path;
+    });
+
+    return "";
 }
 
 app.use(cors({
@@ -48,6 +84,7 @@ app.get("/", (req, res, next) => {
 
 app.post("/print", (req, res, next) => {
 
+    console.log("Print request received : PDF MODE");
     const file = req.files.pdf;
 
     const options = {};
@@ -60,13 +97,16 @@ app.post("/print", (req, res, next) => {
     const path = uploadDirectory + file.name + "_" + timeStamp;
     file.mv(path, async (err, result) => {
 
+        console.log("MV Result (Raw) = " + result);
+        console.log("MV Result (JSON) = " + JSON.stringify(result));
+
         if (err)
             throw err;
 
         try {
             await ptp.print(path, options);
         } catch (error) {
-            console.log("PRINT_TO_PDF_ERROR");
+            console.log("PRINT_TO_PDF_ERROR : " + error);
         }
 
         res.status(200).send({
@@ -75,6 +115,27 @@ app.post("/print", (req, res, next) => {
         });
     });
 
+});
+
+app.post("/print-txt", (req, res, next) => {
+
+    console.log("TXT MODE");
+    const txt = req.body.txt;
+
+    const file = StringToFile(txt);
+   
+    const printerName = "";
+    if (req.query.printer) {
+        printerName = req.query.printer;
+        console.log("PRINTER = " + printerName);
+    }
+
+    PrintFile(file, printerName);
+
+    res.status(200).send({
+        success: true,
+        message: "File uploaded!"
+    });
 });
 
 app.listen(5000, () => {
